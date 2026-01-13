@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { decodeAudioData, decodeBase64ToBytes, encodeAudio } from '../geminiService';
@@ -26,11 +25,11 @@ const BoundarySandbox: React.FC<BoundarySandboxProps> = ({ onExit }) => {
       audioContextRef.current = outputCtx;
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
-          systemInstruction: `You are playing the role of a 'Persistent Friend' named Sam. Use a calm, persuasive British dialect. You are pressuring the Traveller to come out and 'just have one drink'. Your goal is to help them achieve clear assertiveness using DEAR MAN skills. Be firm but formal. If they successfully set a boundary, concede with formal respect.`
+          systemInstruction: `You are playing the role of a 'Persistent Friend' named Sam. Use a calm, persuasive British dialect. You are pressuring the Traveller to come out and 'just have one drink'. Your goal is to help them achieve clear assertiveness using DEAR MAN skills.`
         },
         callbacks: {
           onopen: () => {

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface LogoProps {
@@ -14,6 +13,7 @@ const Logo: React.FC<LogoProps> = ({
   className = "",
   showText = true 
 }) => {
+  // Sizes increased by 10% from original base values
   const sizes = {
     sm: { icon: 26, text: 'text-xl' },
     md: { icon: 44, text: 'text-[1.65rem]' },
@@ -34,39 +34,22 @@ const Logo: React.FC<LogoProps> = ({
         xmlns="http://www.w3.org/2000/svg"
         className="drop-shadow-xl overflow-visible"
       >
-        {/* Bottom Stone - Teal */}
         <path 
           className="fill-teal-500 transition-all duration-1000"
           d="M10 90C10 82 30 75 50 75C70 75 90 82 90 90C90 98 70 105 50 105C30 105 10 98 10 90Z" 
         />
-        {/* Middle Lower - Indigo */}
         <path 
           className="fill-indigo-600 transition-all duration-1000"
           d="M25 65C25 58 40 53 52 53C64 53 79 58 79 65C79 72 64 78 52 78C40 78 25 72 25 65Z" 
         />
-        {/* Middle Upper - Purple */}
         <path 
           className="fill-purple-500 transition-all duration-1000"
           d="M35 43C35 38 45 35 52 35C59 35 69 38 69 43C69 48 59 52 52 52C45 52 35 48 35 43Z" 
         />
-        
-        {/* Animated Top Stone Group */}
         <g className="animate-bounce-zen">
-          {/* Top Stone - Amber Glow */}
-          <circle 
-            className="fill-amber-500 shadow-amber-500"
-            cx="52" cy="22" r="8" 
-          />
-          {/* Pulse effect on top stone */}
-          <circle 
-            className="animate-pulse fill-amber-400/40"
-            cx="52" cy="22" r="14" 
-          />
-          {/* Internal highlight for depth */}
-          <circle 
-            className="fill-white/30"
-            cx="50" cy="19" r="3" 
-          />
+          <circle className="fill-amber-500" cx="52" cy="22" r="8" />
+          <circle className="animate-pulse fill-amber-400/40" cx="52" cy="22" r="14" />
+          <circle className="fill-white/30" cx="50" cy="19" r="3" />
         </g>
       </svg>
 

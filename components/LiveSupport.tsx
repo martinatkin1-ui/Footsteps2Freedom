@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from '@google/genai';
 import { decodeAudioData, decodeBase64ToBytes, encodeAudio } from '../geminiService';
@@ -18,6 +17,7 @@ const LiveSupport: React.FC<LiveSupportProps> = ({ onExit }) => {
 
   const startSession = async () => {
     setIsConnecting(true);
+    // Create new instance right before use to ensure API key freshness
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
     try {
@@ -27,13 +27,13 @@ const LiveSupport: React.FC<LiveSupportProps> = ({ onExit }) => {
       audioContextRef.current = outputCtx;
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } }
           },
-          systemInstruction: 'You are "Footsteps Guide." Your persona is calm, warm, formal, and deeply empathetic. Speak slowly and clearly in a standard British dialect. Your focus is on the Traveller\'s capacity for achievement and growth. If they are distressed, guide them formally back to biological stability. You are a wise mentor, not a casual friend.'
+          systemInstruction: 'You are "Footsteps Guide." Your persona is calm, warm, formal, and deeply empathetic. Speak slowly and clearly in a standard British dialect. Your focus is on the Traveller\'s capacity for achievement and growth.'
         },
         callbacks: {
           onopen: () => {
@@ -46,9 +46,8 @@ const LiveSupport: React.FC<LiveSupportProps> = ({ onExit }) => {
               setAudioLevel(sum / inputData.length);
 
               const int16 = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) {
-                int16[i] = inputData[i] * 32768;
-              }
+              for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
+              
               sessionPromise.then(s => s.sendRealtimeInput({
                 media: { data: encodeAudio(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' }
               }));

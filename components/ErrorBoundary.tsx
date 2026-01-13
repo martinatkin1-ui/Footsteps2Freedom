@@ -1,5 +1,5 @@
 
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 import ErrorDisplay from './ErrorDisplay';
 
 interface ErrorBoundaryProps {
@@ -13,10 +13,10 @@ interface ErrorBoundaryState {
 
 /**
  * ErrorBoundary to catch and handle runtime errors in the component tree.
- * Inherits from React.Component to provide error tracking state and lifecycle methods.
+ * Inherits from Component to provide error tracking state and lifecycle methods.
  */
-/* Fix: Explicitly using React.Component ensures inheritance of typed members like setState and props. */
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+/* Fix: Using Component directly ensures inheritance of typed members like setState and props. */
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Initialize state property
   public state: ErrorBoundaryState = {
     hasError: false,
@@ -42,7 +42,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
    */
   handleReset = (): void => {
     // Resetting the state using the inherited setState method
-    /* Fix: this.setState is now correctly inherited from the React.Component base class. */
+    /* Fix: this.setState is now correctly inherited from the Component base class. */
     this.setState({ hasError: false, error: null });
   };
 
@@ -50,7 +50,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     // Access state from the instance
     const { hasError, error } = this.state;
     // Access props from the instance
-    /* Fix: this.props is now correctly inherited from the React.Component base class. */
+    /* Fix: this.props is now correctly inherited from the Component base class. */
     const { children } = this.props;
 
     if (hasError) {

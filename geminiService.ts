@@ -40,6 +40,18 @@ export const getSanctuaryLocalCoreResponse = (moduleName: string): string => {
   return responses[moduleName] || responses["Default"];
 };
 
+// Added export getOfflineResponse to fix ChatSupport.tsx error
+/**
+ * Provides a fallback response for the chat when offline.
+ */
+export const getOfflineResponse = (phaseId: number, isCrisis: boolean): string => {
+  if (isCrisis) {
+    return "I sense profound distress in your words. Please pause and reach out to one of the safety anchors provided in your Crisis Card. Your presence matters, and safety is our first priority.";
+  }
+  const phase = RECOVERY_PHASES.find(p => p.id === phaseId);
+  return `I am currently in Local Sanctuary Mode to protect your path. Even without a signal, your journey through ${phase?.title || 'this phase'} continues. Every steady step you take is a win for your True-Self. Stay present.`;
+};
+
 async function callWithRetry<T>(operation: () => Promise<T>, maxRetries = 2): Promise<T | null> {
   if (!navigator.onLine) return null;
   for (let i = 0; i < maxRetries; i++) {
@@ -122,18 +134,10 @@ export const playSpeech = async (base64Audio: string, onEnd?: () => void) => {
 export const generateUINarration = async (route: string, pageContent: string): Promise<string | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `You are the Footsteps Guide. I will provide you with the raw text visible on the Traveller's screen (including any open windows, modals, or calculators).
-    
+    const prompt = `You are the Footsteps Guide. I will provide you with the raw text visible on the Traveller's screen.
     Current Route Context: "${route}". 
     Visible Content: "${pageContent}". 
-    
-    Your Task:
-    1. Provide a cohesive verbal walkthrough of the current landscape. 
-    2. Read out the key text accurately but formatted for natural speech.
-    3. Crucially, provide specific clinical feedback or encouragement if you see progress data (e.g., money saved, sobriety days, completed exercises) or signs of struggle (e.g., HALT scores).
-    4. Maintain a warm, formal, British mentor persona. Avoid reading out navigation UI (like 'Home', 'Support') unless it is relevant to the feedback.
-    
-    Max 65 words. Focus on the achievement of the Traveller's current state.`;
+    Task: Provide a cohesive verbal walkthrough. Max 65 words. Focus on achievement.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -150,21 +154,9 @@ export const getCounselorResponseStream = async (userMessage: string, history: a
     model: 'gemini-3-pro-preview',
     contents: [...history, { role: 'user', parts: [{ text: userMessage }] }],
     config: {
-      systemInstruction: `${SYSTEM_PROMPT}\nPhase: ${phaseId}${archiveMemory}\nGuideline: Maintain absolute formal kindness. Always frame responses around what the Traveller is currently achieving and their capacity for the next victory.`,
+      systemInstruction: `${SYSTEM_PROMPT}\nPhase: ${phaseId}${archiveMemory}\nGuideline: Maintain absolute formal kindness.`,
       temperature: 0.7,
     }
-  });
-};
-
-export const generateMissionSynthesis = async (goalTitle: string, userReflection: string): Promise<string | null> => {
-  return await callWithRetry(async () => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Mission Marker: "${goalTitle}". Traveller's Reflection: "${userReflection}". Provide a formal commendation. Focus on how this victory solidifies their True-Self and future potential. Max 50 words. Persona: Puck Guide.`;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-    });
-    return response.text;
   });
 };
 
@@ -172,8 +164,6 @@ export const analyzeNervousSystemAtmosphere = async (moods: MoodEntry[], biometr
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const prompt = `Recent Data Points: ${moods.slice(-5).map(m => m.mood).join(';')}. Heart Rate: ${biometrics.heartRate}bpm. 
-    Determine the current nervous system atmosphere. 
-    Provide a formal, calm insight on what the Traveller can achieve now to maintain stability. 
     JSON Schema: { "state": "serene" | "steady" | "misty" | "stormy", "insight": "string" }`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -197,26 +187,17 @@ export const getJournalInsight = async (entry: Partial<JournalEntry>, currentPha
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response: any = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Phase: ${currentPhase}. Reflection: ${entry.content}. Offer a formal, warm, and sophisticated insight focused on the Traveller's emerging strengths and growth markers. Max 45 words.` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Phase: ${currentPhase}. Reflection: ${entry.content}. Offer a formal, warm insight. Max 45 words.` }] }],
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
   });
 };
 
-/**
- * Deepens insight for past journal entries by incorporating retrospective user context.
- */
 export const enhanceJournalInsight = async (originalContent: string, additionalContext: string, currentPhase: string = 'Foundations') => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Phase: ${currentPhase}. 
-    Original Reflection from the Past: "${originalContent}". 
-    Retrospective Context Provided Today: "${additionalContext}". 
-    
-    Task: Provide a sophisticated, formal, and deeply empathetic "Retrospective Insight". 
-    Analyze the gap between then and now. Identify patterns or strengths that the Traveller was blind to then, but can see now through your mirror. 
-    Focus on the achievement of growth. UK English. Max 60 words. Persona: Footsteps Guide.`;
+    const prompt = `Phase: ${currentPhase}. Past: "${originalContent}". Context: "${additionalContext}". Provide Retrospective Insight. Max 60 words.`;
     
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -232,7 +213,7 @@ export const getDailyAffirmation = async (rank: string, phaseId: number) => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Rank: ${rank}. Phase: ${phaseId}. Create a formal, calm affirmation of potential and capacity. UK English. Focus on the achievement of the coming 24 hours. Max 30 words.`,
+      contents: `Rank: ${rank}. Phase: ${phaseId}. Create a formal affirmation. Max 30 words.`,
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
@@ -244,32 +225,17 @@ export const getProactiveNudge = async (eventContext: string) => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Event Trigger: ${eventContext}. Offer a formal, calm invitation to regulate and achieve biological stability. Max 18 words. UK English.`,
+      contents: `Trigger: ${eventContext}. Offer invitation to regulate. Max 18 words.`,
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
   });
 };
 
-export const checkCrisisStatus = (text: string): boolean => {
-  const crisisKeywords = ['kill myself', 'suicide', 'self-harm', 'end it all', 'give up on life', 'no reason to live', 'hurt myself', 'want to die', 'overdose', '999', 'hospital'];
-  return crisisKeywords.some(keyword => text.toLowerCase().includes(keyword));
-};
-
 export const screenCommunityContent = async (text: string): Promise<{ isSafe: boolean; feedback: string }> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `You are the Footsteps Safety Monitor. Your goal is to ensure the community remains a safe, recovery-oriented sanctuary. 
-    
-    Review the following text for:
-    1. "War Stories": Graphic descriptions of drug/alcohol use that glorify the experience.
-    2. Triggering Language: Specific details that could trigger a relapse in others.
-    3. Abusive or non-recovery-oriented language.
-    4. Mention of self-harm or immediate crisis (if found, flag as unsafe).
-
-    TEXT TO REVIEW: "${text}"
-
-    JSON Output Format: { "isSafe": boolean, "feedback": "empathetic UK English feedback if unsafe, explaining why we must hold the sanctuary's safety, otherwise empty string" }`;
+    const prompt = `Review content for safety. JSON: { "isSafe": boolean, "feedback": "empathetic feedback if unsafe" }`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -278,37 +244,20 @@ export const screenCommunityContent = async (text: string): Promise<{ isSafe: bo
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: {
-            isSafe: { type: Type.BOOLEAN },
-            feedback: { type: Type.STRING }
-          },
+          properties: { isSafe: { type: Type.BOOLEAN }, feedback: { type: Type.STRING } },
           required: ["isSafe", "feedback"]
         }
       }
     });
 
-    const result = JSON.parse(response.text || '{"isSafe": true, "feedback": ""}');
-    return result;
+    return JSON.parse(response.text || '{"isSafe": true, "feedback": ""}');
   }) || { isSafe: true, feedback: "" };
-};
-
-export const getOfflineResponse = (phaseId: number = 1, isCrisis: boolean = false): string => {
-  const responses = [
-    "I am currently operating in local sanctuary mode. Take a slow breath: 4 seconds in, 6 seconds out. You are capable of achieving stability.",
-    "The path ahead is clear if we focus on the present step. Biological regulation is your only objective in this moment.",
-    "Patience is a cornerstone of healing. Your potential remains intact, even in the silence."
-  ];
-  return responses[Math.floor(Math.random() * responses.length)];
 };
 
 export const generateBeaconMessage = async (topic: string, rawAdvice: string): Promise<{ wisdom: string; advice: string } | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Topic: "${topic}". Raw Experience: "${rawAdvice}". 
-    Synthesise into: 
-    1. A formal Wisdom Artifact (max 15 words). 
-    2. A concrete Wayfinder's Action (max 40 words) that another Traveller can achieve. 
-    Persona: Wise British mentor. UK English. JSON: { "wisdom": "string", "advice": "string" }`;
+    const prompt = `Topic: "${topic}". Raw: "${rawAdvice}". JSON: { "wisdom": "string", "advice": "string" }`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -328,10 +277,7 @@ export const generateBeaconMessage = async (topic: string, rawAdvice: string): P
 export const getShadowArchetype = async (description: string): Promise<ShadowArchetype | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Shadow profile: "${description}". 
-    Assign a formal UK Archetype name. 
-    Focus on the achievement of integration. 
-    JSON Schema: { "name": "string", "description": "string", "originalIntent": "string", "integrationGift": "string" }`;
+    const prompt = `Shadow profile: "${description}". JSON: { "name": "string", "description": "string", "originalIntent": "string", "integrationGift": "string" }`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -357,7 +303,7 @@ export const getShadowArchetype = async (description: string): Promise<ShadowArc
 export const generateShadowArt = async (archetypeName: string) => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Symbolic formal charcoal and gold artwork for the shadow archetype '${archetypeName}'. Cinematic, high contrast, elegant, no faces.`;
+    const prompt = `Symbolic charcoal and gold artwork for shadow archetype '${archetypeName}'. Cinematic.`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: [{ parts: [{ text: prompt }] }],
@@ -371,9 +317,7 @@ export const generateShadowArt = async (archetypeName: string) => {
 export const generateJourneySummary = async (moods: MoodEntry[], lessons: CompletedLesson[], journals: JournalEntry[]): Promise<ArchiveSummary | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Create a formal 'Golden Thread' summary of this journey. 
-    Focus on achievements and strengths. 
-    JSON Schema: { "narrative": "string", "patterns": ["string"], "strengths": ["string"] }`;
+    const prompt = `Summary of journey. JSON: { "narrative": "string", "patterns": ["string"], "strengths": ["string"] }`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -398,7 +342,7 @@ export const generateJourneySummary = async (moods: MoodEntry[], lessons: Comple
 export const generateTrueSelfArt = async (rank: string, landmarks: string[], atmosphere: string = 'steady') => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Formal digital painting. Rank: '${rank}'. Landmarks: ${landmarks.join(', ')}. Atmosphere: ${atmosphere}. Ethereal teal and gold. Cinematic lighting.`;
+    const prompt = `Rank: '${rank}'. Landmarks: ${landmarks.join(', ')}. Atmosphere: ${atmosphere}. Ethereal teal and gold. Digital painting.`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: [{ parts: [{ text: prompt }] }],
@@ -412,7 +356,7 @@ export const generateTrueSelfArt = async (rank: string, landmarks: string[], atm
 export const generateCompletionArt = async (moduleName: string, rank: string) => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Formal symbolic artifact for achievement in '${moduleName}'. Rank: '${rank}'. Style: Ancient geometric, teal and gold, cinematic lighting, no text.`;
+    const prompt = `Symbolic artifact for '${moduleName}'. Rank: '${rank}'. Teal and gold.`;
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: [{ parts: [{ text: prompt }] }],
@@ -423,30 +367,41 @@ export const generateCompletionArt = async (moduleName: string, rank: string) =>
   });
 };
 
-export const getModuleReflection = async (moduleName: string, context: string, rating?: number) => {
-  const localFallback = getSanctuaryLocalCoreResponse(moduleName);
-  
-  if (!navigator.onLine) {
-    return localFallback;
-  }
+// Added export generateMissionSynthesis to fix SmartGoals.tsx error
+/**
+ * Synthesizes a goal debriefing into a victory reflection.
+ */
+export const generateMissionSynthesis = async (title: string, debrief: string): Promise<string | null> => {
+  return await callWithRetry(async () => {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const prompt = `Marker: "${title}". Debrief: "${debrief}". Synthesize this victory. Max 50 words. Focus on identity shift and achievement.`;
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: { systemInstruction: SYSTEM_PROMPT }
+    });
+    return response.text;
+  });
+};
 
+export const getModuleReflection = async (moduleName: string, context: string, rating?: number) => {
+  if (!navigator.onLine) return getSanctuaryLocalCoreResponse(moduleName);
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Module: ${moduleName}. Context: ${context}. Rating: ${rating || 'N/A'}. 
-      Provide a formal, warm reflection on the achievement of this step. Max 40 words. UK English.`,
+      contents: `Module: ${moduleName}. Context: ${context}. Rating: ${rating || 'N/A'}. Reflection. Max 40 words.`,
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
-  }) || localFallback;
+  }) || getSanctuaryLocalCoreResponse(moduleName);
 };
 
 export const recommendSomaticProtocol = async (regions: SomaticRegion[]): Promise<{ title: string; instruction: string } | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const tensionContext = regions.map(r => `${r.label} (Intensity ${r.intensity}/3)`).join(', ');
-    const prompt = `Tension: ${tensionContext}. Provide a formal 3-step Somatic Reset Protocol focusing on the achievement of biological calm. JSON: { "title": "string", "instruction": "string" }`;
+    const prompt = `Tension: ${tensionContext}. Somatic Protocol. JSON: { "title": "string", "instruction": "string" }`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -468,7 +423,7 @@ export const getJournalPrompt = async (phaseId: number, mood: string): Promise<s
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Phase: ${phaseId}. Mood: ${mood}. Provide a formal, contemplative journal prompt that encourages the Traveller to explore their True-Self. Max 25 words.` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Phase: ${phaseId}. Mood: ${mood}. Contemplative prompt. Max 25 words.` }] }],
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
@@ -480,7 +435,7 @@ export const getGratitudePrompt = async (phaseTitle: string, mood: string): Prom
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Phase: ${phaseTitle}. Current Mood: ${mood}. Offer a formal prompt to help the Traveller identify a "Glimmer" of gratitude in their current surroundings. Max 20 words.` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Phase: ${phaseTitle}. Mood: ${mood}. Glimmer prompt. Max 20 words.` }] }],
       config: { systemInstruction: SYSTEM_PROMPT }
     });
     return response.text;
@@ -490,9 +445,7 @@ export const getGratitudePrompt = async (phaseTitle: string, mood: string): Prom
 export const summarizeChain = async (data: any): Promise<string | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Deconstruct the following Chain Analysis data and provide a formal clinical summary focusing on the "Link of Choice" where the Traveller can intervene next time.
-    Data: ${JSON.stringify(data)}
-    Format: Formal, empathetic British mentor. Max 60 words.`;
+    const prompt = `Chain Analysis summary. Max 60 words. Data: ${JSON.stringify(data)}`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -505,27 +458,16 @@ export const summarizeChain = async (data: any): Promise<string | null> => {
 export const getLocalSupport = async (lat?: number, lng?: number): Promise<{ text: string; grounding: any[] } | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const contents = "Find local recovery support centres, NHS mental health hubs, and AA/NA meetings near me in the UK. Provide a supportive summary and specific locations.";
-    const config: any = {
-      tools: [{ googleMaps: {} }],
-    };
-    
-    if (lat && lng) {
-      config.toolConfig = {
-        retrievalConfig: {
-          latLng: { latitude: lat, longitude: lng }
-        }
-      };
-    }
-
+    const contents = "UK recovery support centres and meetings near me.";
+    const config: any = { tools: [{ googleMaps: {} }] };
+    if (lat && lng) config.toolConfig = { retrievalConfig: { latLng: { latitude: lat, longitude: lng } } };
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [{ role: 'user', parts: [{ text: contents }] }],
       config
     });
-
     return {
-      text: response.text || "I am searching for local support landmarks in your vicinity.",
+      text: response.text || "Searching for support...",
       grounding: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
     };
   });
@@ -534,7 +476,7 @@ export const getLocalSupport = async (lat?: number, lng?: number): Promise<{ tex
 export const generateMeetingReflection = async (title: string, takeaway: string): Promise<string | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Meeting: "${title}". Traveller's Takeaway: "${takeaway}". Provide a formal commendation on the value of this shared wisdom. Max 40 words. Persona: Puck Guide.`;
+    const prompt = `Meeting: "${title}". Takeaway: "${takeaway}". Commendation. Max 40 words.`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -544,21 +486,10 @@ export const generateMeetingReflection = async (title: string, takeaway: string)
   });
 };
 
-export function encodeAudio(bytes: Uint8Array) {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
 export const getDiagnosticDeepDive = async (topic: string, query: string): Promise<string | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Topic: ${topic}. Specific Query: ${query}. 
-    Provide a formal, clinical deep-dive explanation based on UK recovery standards and neuroscience. 
-    Maintain a calm, sophisticated tone. Max 80 words.`;
+    const prompt = `Topic: ${topic}. Query: ${query}. Clinical explanation. Max 80 words.`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -571,15 +502,7 @@ export const getDiagnosticDeepDive = async (topic: string, query: string): Promi
 export const generateMilestoneEmail = async (userName: string, milestone: string, type: 'streak' | 'badge'): Promise<string | null> => {
   return await callWithRetry(async () => {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const prompt = `Traveller Name: ${userName}. Milestone Reached: ${milestone}. Type: ${type}.
-    Your Task: Write a formal, deeply encouraging, and warm UK-English congratulatory email body. 
-    Persona: Footsteps Guide. 
-    Include: 
-    1. A sophisticated subject line. 
-    2. Deep clinical mirroring of why this milestone matters for their True-Self. 
-    3. A values-based encouraging closing. 
-    Max 100 words.`;
-    
+    const prompt = `User: ${userName}. Milestone: ${milestone}. Type: ${type}. Email body. Max 100 words.`;
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -588,3 +511,14 @@ export const generateMilestoneEmail = async (userName: string, milestone: string
     return response.text;
   });
 };
+
+export const checkCrisisStatus = (text: string): boolean => {
+  const keywords = ['kill myself', 'suicide', 'self-harm', 'end it all', 'give up', 'no reason', 'hurt myself', 'want to die', 'overdose', '999'];
+  return keywords.some(k => text.toLowerCase().includes(k));
+};
+
+export function encodeAudio(bytes: Uint8Array) {
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
