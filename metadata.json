@@ -1,0 +1,10 @@
+{
+  "name": "Copy of Copy 2 of Footsteps to Freedom - Addiction Recovery Companion",
+  "description": "A compassionate, AI-powered guided journey for individuals in recovery, featuring sobriety tracking, mood journaling, guided exercises, and a supportive AI counselor.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera",
+    "geolocation",
+    "bluetooth"
+  ]
+}

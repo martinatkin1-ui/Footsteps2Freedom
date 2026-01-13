@@ -1,0 +1,21 @@
+
+{
+  "version": "1.0.0",
+  "hubs": [
+    {
+      "id": "dbt",
+      "name": "DBT Mastery Hub",
+      "tools": ["tipp-skill", "accepts-skill", "improve-skill", "radical-acceptance", "stop-skill", "assertiveness-tool", "emotional-boundaries"]
+    },
+    {
+      "id": "cbt",
+      "name": "CBT Patterns Lab",
+      "tools": ["chain-analysis", "cost-benefit-analysis", "problem_solving", "exposure_tool", "inner-critic-challenge", "cognitive-reframing", "behaviour-tree", "progress-monitoring"]
+    },
+    {
+      "id": "mindfulness",
+      "name": "Presence Sanctuary",
+      "tools": ["meditation-timer", "video-sanctuary", "breathing-exercises", "grounding", "urge-surfing"]
+    }
+  ]
+}
